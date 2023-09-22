@@ -1,0 +1,131 @@
+import openai
+import re
+import time
+
+openai.api_key = "Put your API key here"
+
+conditions = [
+    "Cardiac failure in a child",
+    "Chromosomal syndromes",
+    "Congenital heart disease",
+    "Congenital malformations",
+    "Congenital, perinatal & neonatal infection",
+    "Cord prolapse",
+    "Developmental delay",
+    "Developmental dysplasia of the hip",
+    "Growth disorder",
+    "Haematological disease in a child",
+    "Hereditary Angioedema (C1 inhibitor deficiency)",
+    "Haemolytic disease of the newborn",
+    "Hernias in child",
+    "Hirschsprung disease",
+    "Immunodeficiency in a child (incl. HIV)",
+    "Inflammatory bowel disease in a child",
+    "Liver disease in a child",
+    "Malabsorption in a child",
+    "Malignancy in a child",
+    "Malnutrition in a child",
+    "Malrotation & Volvulus in a child",
+    "Meconium aspiration",
+    "Muscular dystrophy in a child",
+    "Neonatal jaundice",
+    "Osteomyelitis in a child",
+    "Renal disease in a child",
+    "Respiratory disease in a neonate",
+    "Rheumatological disease in a child",
+    "Seizures in children",
+    "Small / Preterm baby",
+    "Small for dates pregnancy (incl. intrauterine growth restriction)",
+    "Somatisation in a child",
+    "Sudden infant death syndrome (SIDS)",
+    "Thyroid disease in a child",
+    "Tropical disease in a child",
+    "Allergy in a child",
+    "Anal fissure in a child",
+    "Appendicitis in a child",
+    "Asthma and/or Viral induced wheeze in a child",
+    "Bacterial infection in a child",
+    "Brain tumour in a child",
+    "Cerebral bleed in a child",
+    "CNS infection in a child",
+    "Diabetes in a child",
+    "Down's syndrome",
+    "Eye disease in a child",
+    "Fracture in a child",
+    "Mumps",
+    "Non-accidental injury",
+    "Pneumonia in a child",
+    "Septicaemia in the neonate/child",
+    "Skin disease in a child",
+    "Toddler diarrhoea",
+    "Urinary tract infection in a child",
+    "Viral infection in a child",
+    "Upper respiratory tract infection in a child",
+    "Vasovagal syncope in a child",
+    "Juvenile Idiopathic arthritis",
+    "Inherited metabolic disorders",
+    "Inherited disorders of connective tissue (Ehlers-Danlos, Marfan)",
+    "Enuresis",
+    "Encopresis",
+    "Gastroenteritis in a child",
+    "Gastro-esophageal reflux in a child",
+    "Hydrocoele", 
+    "Laryngomalacia",
+    "Strabismus",
+    "Necrotising enterocolitis (NEC)",
+    "Biliary atresia",
+]
+
+
+def generate_flashcards(conditions):
+    paper = ''
+    for condition in conditions:
+        time.sleep(2)
+        questions = []
+        answers = []
+        signsprompt = f"make a full and detailed index case for {condition} including outcome, make it at least 200 words long."
+        completion = openai.Completion.create(engine="text-davinci-002", prompt=signsprompt, max_tokens=4000)
+        marker = r'"text": "\n\n'
+        strcompletion=str(completion)
+        parts = strcompletion.split(marker)
+        if len(parts) > 1:
+            text = parts[1]
+            text = text.split('}')[0]
+            line = condition + '\t' + text 
+           
+        # Remove newline, Unicode escape characters, and instances of "\n\n" from the line
+        while r"\n" in line or r"\u" in line or r"\n\n" in line:
+            line = line.replace(r"\n", "").replace(r"\u", "").replace(r"\n\n", "")
+            
+        # Split the line into left and right columns using a tab character as the delimiter
+        split_line = re.split(r'\t', line)
+
+        # Check if the split line has two elements
+        if len(split_line) == 2:
+            left, right = split_line
+
+            # Remove any full stops and other punctuation from the left and right columns, and trim any leading or trailing whitespace
+            left = re.sub(r'[^\w\s]', '', left).strip()
+            right = re.sub(r'[^\w\s]', '', right).strip()
+
+            # Split the right column into a list of words using any sequence of whitespace characters as the delimiter
+            right_words = re.split(r'\s+', right)
+
+            # Iterate through the list of words in the right column, and remove any that appear in the left column
+            right_words = [word for word in right_words if word not in left]
+
+            # Join the list of words back into a single string, replacing any sequence of whitespace characters with a single space character
+            right = re.sub(r'\s+', ' ', ' '.join(right_words))
+        else:
+            # If the split line does not have two elements, set the left and right columns to empty strings
+            left = ""
+            right = ""
+
+        # Join the left and right columns back into a single line
+        line = left + "\t" + right + '\n\n'
+        paper=paper+line
+
+    print(paper)
+        
+generate_flashcards(conditions)
+
